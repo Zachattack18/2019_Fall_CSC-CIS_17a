@@ -1,0 +1,226 @@
+/* 
+ * File:   main.cpp
+ * Author: Zachary Hill
+ *
+ * Created on October 1, 2019, 1:42 PM
+ * Purpose: Create a program that simulates the Scrabble board game
+ * by starting out with all the necessary operations to play the
+ * game correctly.
+ */
+
+//System Libraries
+#include <cstdlib>
+#include <ctime>
+#include <iostream>
+#include <iomanip>
+#include <cstring>
+#include <string>
+using namespace std;
+
+//Structures
+struct NumberTiles {
+    char LtChar;    //holds the letter on each tile.
+    int numTiles;   //holds the number of each lettered tile in the bag.
+    double TileValue;   //holds value for each tile
+};
+
+struct User {
+    string name;
+    char *rack;
+    int points;
+};
+
+
+//Global Constants
+const int NUM = 27;
+enum Letter{A, B, C, D, E, F, G, H, I, J, K, L, M, N,
+            O, P, Q, R, S, T, U, V, W, X, Y, Z, BLANK};
+enum CELL_TYPE {  NM,		 /* NO MULTIPLIER */
+	              DL,		 /* DOUBLE LETTER */
+	              TL,		 /* TRIPLE LETER */
+	              DW,		 /* DOUBLE WORD */
+	              TW		 /* TRIPLE WORD */
+	        };
+                
+//Function Prototypes
+int displayTiles(NumberTiles []);
+int TurnPlyr (int, int);
+
+int main(int argc, char** argv) {
+    srand ( time(NULL) ); //initialize the random seed.
+
+    NumberTiles numTilesarr[NUM] = {{'A',9,1}, {'B',2,3}, {'C',2, 3}, {'D',4,2}, {'E',12,1}, {'F',2,4}, {'G',3,2}, {'H',2,4}, {'I',9.1}, 
+                            {'J',1,8}, {'K',1,5}, {'L',4,1}, {'M',2,3}, {'N',6,1}, {'O',8,1}, {'P',2,3}, {'Q',1,10}, {'R',6,1}, 
+                            {'S',4,1}, {'T',6,1}, {'U',4,1}, {'V',2,4}, {'W',2,4}, {'X',1,8}, {'Y',2,4}, {'Z',1,10}, {'?',2,0}};
+    const CELL_TYPE multiplier[15*15] = {
+/* 0 */  TW,NM,NM,DL,NM,NM,NM,TW,NM,NM,NM,DL,NM,NM,TW,
+/* 1 */  NM,DW,NM,NM,NM,TL,NM,NM,NM,TL,NM,NM,NM,DW,NM,
+/* 2 */  NM,NM,DW,NM,NM,NM,DL,NM,DL,NM,NM,NM,DW,NM,NM,
+/* 3 */  DL,NM,NM,DW,NM,NM,NM,DL,NM,NM,NM,DW,NM,NM,DL,
+/* 4 */  NM,NM,NM,NM,DW,NM,NM,NM,NM,NM,DW,NM,NM,NM,NM,
+/* 5 */  NM,TL,NM,NM,NM,TL,NM,NM,NM,TL,NM,NM,NM,TL,NM,
+/* 6 */  NM,NM,DL,NM,NM,NM,DL,NM,DL,NM,NM,NM,DL,NM,NM,
+/* 7 */  TW,NM,NM,DL,NM,NM,NM,DW,NM,NM,NM,DL,NM,NM,TW,
+/* 8 */  NM,NM,DL,NM,NM,NM,DL,NM,DL,NM,NM,NM,DL,NM,NM,
+/* 9 */  NM,TL,NM,NM,NM,TL,NM,NM,NM,TL,NM,NM,NM,TL,NM,
+/* A */  NM,NM,NM,NM,DW,NM,NM,NM,NM,NM,DW,NM,NM,NM,NM,
+/* B */  DL,NM,NM,DW,NM,NM,NM,DL,NM,NM,NM,DW,NM,NM,DL,
+/* C */  NM,NM,DW,NM,NM,NM,DL,NM,DL,NM,NM,NM,DW,NM,NM,
+/* D */  NM,DW,NM,NM,NM,TL,NM,NM,NM,TL,NM,NM,NM,DW,NM,
+/* E */  TW,NM,NM,DL,NM,NM,NM,TW,NM,NM,NM,DL,NM,NM,TW };
+    char again;         //holds response for a yes or no question.
+    char input;
+    User players;    //holds max of four players
+    int numPlyrs = 0;
+    int length; //holds length of word.
+    char word[10]; //holds the word a player chooses with 10 characters max.
+    int points = 0;
+    int c;         //each character in word chosen.
+    int pos;       //position on board the player chooses to place tile.
+    
+    cout << "Welcome to the game of Scrabble!" << endl;
+    
+    cout << "Do you want to hear the rules? ";
+    cin >> again;
+    cout << endl;
+    
+    if (again == 'Y' || again == 'y') {
+        cout << "Are a few simple rules." << endl;
+        cout << "We start out with 100 tiles in a bag." << endl;
+        cout << "Each player draws 7 tiles from the bag to spell words with (you can use letters put on board)." << endl;
+        cout << "Add up points on tiles in the word you spell then draw tiles equal to the number of them used." << endl;
+        cout << "Keep doing this till all tiles are used up or all players can no longer spell words." << endl;
+        cout << "After that, the player with the most points wins!" << endl;
+    }
+    
+    cout << "\nHere's a list of all tiles and number of each in the game" << endl;
+    cout << "---------------------------------------------------------\n";
+    displayTiles(numTilesarr);
+    cout << "\n\nNow here's the value of each lettered tile" << endl;
+    cout << "----------------------------------------------\n";
+    for (int count = 0; count < NUM - 1; count++) {
+        cout << char(count + 65) << " = " << numTilesarr[count].TileValue;
+        cout << setw(6);
+    }
+    cout << "   ? = " << numTilesarr[27].TileValue<< endl;
+    
+    cout << "Format of the Actual Board Game" << endl;
+    cout << multiplier[15*15] << endl;
+    
+    cout << "\nLet us begin! First, how many people are playing in this game? ";     //input number of players.
+    cin >> numPlyrs;
+    
+    while (numPlyrs < 2 || numPlyrs > 4) {     //in case user inputs a number that does not qualify.
+        cout << "\nInvalid number! There needs to be between 2 and 4 players." << endl;
+        cout << "\nHow many people are playing in this game? ";     //input number of players.
+        cin >> numPlyrs;
+    }
+    
+    
+    int randIndex;
+    for (int i = 0; i < numPlyrs; i++) {
+        cout << "Enter the name of player #" << (i + 1) << ": ";    //each user will have a name
+        cin >> players[i].name;
+        
+        //draw seven tiles at start of game.
+        for (int i = 0; i < 7; i++) {
+            randIndex = rand()%NUM;   //random index for array between 0-26.
+        
+            while(numTilesarr[randIndex].numTiles == 0) {   //have the program generate a new random index
+                randIndex = rand()%NUM;             //if the lettered tile within that index of the array
+            }                                       //no longer exists in the bag, or zero in the array.                  
+            numTilesarr[randIndex].numTiles -= 1;   //decrement number of that specific tile. 
+            cout << "Tiles drawn: " << numTilesarr[randIndex].LtChar << endl; //display all lettered tiles.
+        }
+        
+    }
+     
+    cout << "How many characters are in the word you want to make? ";
+    cin >> length;
+    
+    //Begin playing the game.
+    int totScore = 0; //total points each player acquired.
+    int turn = 0;       //holds a player's turn.
+    int topPlyr = players[0].points;    //player with the most points.
+    do {
+        TurnPlyr (numPlyrs, turn);   
+        
+        cout << "Type the word you wish to use, or press enter if you have none : ";
+        cin >> word;
+        
+	cout << "How many characters are in the word you want to make? ";
+        cin >> length;
+
+        //scoring process
+        for (int i = 0; i < length; i++) {
+        char ch = word[i];             //ch is equal to an individual letter based on its position in the word.
+
+            cout << "Now enter where you want to place each lettered tile on the" << 
+                    " board based on the index of each square (look at diagram above:" <<
+                    " top-left=0,top-right=14, bottom-right=224, etc.) and in order" << 
+                    " of how you your word, press entered after each number entered: ";
+            cin >> pos;
+
+            //multiply letters and/or words if a tile is placed in a specific square.
+            if (pos==0 || pos==7 || pos==14 || pos==105 || pos==119 || pos==217 || pos==210 ||pos==224) {
+                numTilesarr[ch - 97].TileValue *= 3;  //triple word
+                points += numTilesarr[ch - 97].TileValue;
+            }
+            else if (pos==16 || pos==28 || pos==32 || pos==42 || pos==48 || pos==56 ||
+                pos==64 || pos==70 || pos==112 || pos==154 || pos==160 ||
+                pos==168 || pos==176 || pos==182 || pos==192 || pos==196 || pos==208) {
+                numTilesarr[ch - 97].TileValue *= 2;  //double word
+                points += numTilesarr[ch - 97].TileValue;
+            }
+            else if (pos==20 || pos==24 || pos==76 || pos==80 || pos==84 || pos==88 ||
+                pos==136 || pos==140 || pos==144 || pos==148 || pos==200 || pos==204) {
+                c = (ch-97);
+                c *= 3;     //triple letter
+                points += numTilesarr[c].TileValue;
+            }
+            else if (pos==3 || pos==11 || pos==36 || pos==38 || pos==45 || pos==52 ||
+                pos==59 || pos==92 || pos==96 || pos==98 || pos==102 || pos==108 ||
+                pos==116 || pos==122 || pos==126 || pos==128 || pos==132 ||
+                pos==165 || pos==172 || pos==179 || pos==186 || pos==188 ||
+                pos==213 || pos==221) {
+                c = (ch-97);
+                c *= 2;     //double letter
+                points += numTilesarr[c].TileValue;
+            }
+            else {
+                points += numTilesarr[ch - 97].TileValue;   //convert letter from ASCII code to index, then use that index to locate points
+                                            // that letter in array, all points in word are then added together.
+            }     
+            totScore += points;
+    }
+    
+        for (int index=0; index < numPlyrs; index++) {  //go through all total score of
+            if (players[index].points > totScore) {     //each player to see which score is
+                totScore = players[index].points;       //currently the highest as well as
+                topPlyr = index;                        //which player possesses that score.
+            }
+        }
+        cout << "\nAny more words to spell, Y or N? \n";
+        cin >> again;
+        cout << endl;   
+    } while(again == 'Y' || again == 'y');
+    
+    return 0;
+}
+
+int displayTiles(NumberTiles array[]) {    
+    for (int index = A; index <= BLANK; index++) {
+        cout << array[index].LtChar << " = ";    //display character found in array
+        
+        array[index].numTiles > 0 ? cout << right << array[index].numTiles      //used to determine number of each
+            << setw(6) : cout << right << "ALL OUT" << setw(6);                 //remaining tile still in bag.  
+    }
+}
+
+int TurnPlyr (int numplyrs, int turn) { //used to determine which player's turn
+        turn++;                         //it is as the game goes on.
+        if (turn >= numplyrs)
+            turn = 0;       //reset turn
+        
+    return turn;
+}
